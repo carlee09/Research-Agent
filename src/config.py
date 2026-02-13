@@ -28,7 +28,7 @@ class Config:
     CLAUDE_TEMPERATURE: float = 0.7
 
     # Gemini settings
-    GEMINI_MODEL: str = "gemini-2.0-flash-exp"
+    GEMINI_MODEL: str = "gemini-2.5-flash"
     GEMINI_MAX_TOKENS: int = 8192
     GEMINI_TEMPERATURE: float = 0.7
 

@@ -129,7 +129,7 @@ research-agent --topic "sustainable fashion trends" \
 ## AI Models
 
 ### Google Gemini (Recommended)
-- **Model**: `gemini-2.0-flash-exp`
+- **Model**: `gemini-2.5-flash`
 - **Pros**: Fast, cost-effective, high quality
 - **Best for**: General research, quick analysis, high-volume usage
 - **Get API Key**: [Google AI Studio](https://makersuite.google.com/app/apikey)
