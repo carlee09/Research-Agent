@@ -1,0 +1,127 @@
+"""Gemini AI analyzer for research data."""
+
+from typing import Dict, Any, List
+import google.generativeai as genai
+
+from src.config import Config
+from src.utils.logger import get_logger
+from .prompt_templates import get_analysis_prompt
+
+
+class GeminiAnalyzer:
+    """Analyzer using Google Gemini AI for research data analysis."""
+
+    def __init__(self):
+        """Initialize Gemini analyzer."""
+        genai.configure(api_key=Config.GEMINI_API_KEY)
+        self.model = genai.GenerativeModel(Config.GEMINI_MODEL)
+        self.logger = get_logger(self.__class__.__name__)
+
+    def analyze(
+        self,
+        topic: str,
+        data_items: List[Dict[str, Any]],
+        depth: str = "detailed"
+    ) -> Dict[str, Any]:
+        """
+        Analyze collected research data using Gemini AI.
+
+        Args:
+            topic: Research topic
+            data_items: List of collected data items
+            depth: Analysis depth (quick or detailed)
+
+        Returns:
+            Dictionary containing analysis results
+        """
+        self.logger.info(f"🤖 Analyzing {len(data_items)} items with Gemini AI...")
+
+        if not data_items:
+            self.logger.warning("⚠️  No data to analyze")
+            return {
+                "success": False,
+                "error": "No data collected",
+                "analysis": None
+            }
+
+        try:
+            # Generate prompt
+            prompt = get_analysis_prompt(topic, data_items, depth)
+
+            # Configure generation parameters
+            generation_config = genai.types.GenerationConfig(
+                max_output_tokens=Config.GEMINI_MAX_TOKENS,
+                temperature=Config.GEMINI_TEMPERATURE,
+            )
+
+            # Call Gemini API
+            response = self.model.generate_content(
+                prompt,
+                generation_config=generation_config
+            )
+
+            # Extract analysis from response
+            analysis_text = response.text
+
+            # Count tokens (approximate)
+            # Gemini doesn't provide exact token counts in the same way as Claude
+            prompt_tokens = len(prompt.split()) * 1.3  # rough estimate
+            completion_tokens = len(analysis_text.split()) * 1.3
+            total_tokens = int(prompt_tokens + completion_tokens)
+
+            self.logger.info("✅ Analysis completed successfully")
+
+            return {
+                "success": True,
+                "analysis": analysis_text,
+                "metadata": {
+                    "model": Config.GEMINI_MODEL,
+                    "tokens_used": total_tokens,  # approximate
+                    "depth": depth,
+                    "items_analyzed": len(data_items)
+                }
+            }
+
+        except Exception as e:
+            self.logger.error(f"❌ Gemini API error: {e}")
+            return {
+                "success": False,
+                "error": f"Gemini API error: {str(e)}",
+                "analysis": None
+            }
+
+    def summarize_sources(self, data_items: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, str]]]:
+        """
+        Organize and summarize data sources.
+
+        Args:
+            data_items: List of collected data items
+
+        Returns:
+            Dictionary with organized sources by type
+        """
+        sources = {
+            "x": [],
+            "web": []
+        }
+
+        for item in data_items:
+            source_type = item.get("source", "unknown")
+
+            if source_type == "x":
+                sources["x"].append({
+                    "author": item.get("author", ""),
+                    "content": item.get("content", "")[:200] + "...",
+                    "date": item.get("date", ""),
+                    "url": item.get("url", ""),
+                    "engagement": item.get("engagement", {})
+                })
+            elif source_type == "web":
+                sources["web"].append({
+                    "title": item.get("title", ""),
+                    "source": item.get("author", ""),
+                    "date": item.get("date", ""),
+                    "url": item.get("url", "")
+                })
+
+        return sources
